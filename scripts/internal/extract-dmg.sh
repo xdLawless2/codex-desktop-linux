@@ -32,10 +32,6 @@ if ! command -v 7z >/dev/null 2>&1; then
   exit 1
 fi
 SEVEN_Z_BIN="$(command -v 7z)"
-if ! command -v icns2png >/dev/null 2>&1; then
-  echo "Missing required command: icns2png (install the icnsutils package)." >&2
-  exit 1
-fi
 
 rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}" "${ICON_DIR}"
 mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}/bin" "${ICON_DIR}"
@@ -97,31 +93,38 @@ if [[ ! -f "${ICNS_PATH}" ]]; then
   echo "Upstream application icon does not exist: ${ICNS_PATH}" >&2
   exit 1
 fi
-icns2png -x -o "${ICON_DIR}" "${ICNS_PATH}" >/dev/null
-ICON_DIR="${ICON_DIR}" python3 - <<'PY'
+ICNS_PATH="${ICNS_PATH}" ICON_DIR="${ICON_DIR}" python3 - <<'PY'
 import os
-import shutil
 import struct
 from pathlib import Path
 
+icns_path = Path(os.environ["ICNS_PATH"])
 icon_dir = Path(os.environ["ICON_DIR"])
-icons = {}
-for path in icon_dir.glob("*.png"):
-    data = path.read_bytes()
-    if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
-        continue
-    width, height = struct.unpack(">II", data[16:24])
-    if width == height:
-        icons[width] = path
-if not icons:
-    raise SystemExit("icns2png produced no square PNG icons")
-for size, source in icons.items():
-    target = icon_dir / f"{size}x{size}.png"
-    if source != target:
-        shutil.copyfile(source, target)
-for path in icon_dir.glob("*.png"):
-    if path.name not in {f"{size}x{size}.png" for size in icons}:
-        path.unlink()
+data = icns_path.read_bytes()
+if len(data) < 8 or data[:4] != b"icns":
+    raise SystemExit("upstream application icon is not a valid ICNS container")
+declared_length = struct.unpack(">I", data[4:8])[0]
+if declared_length != len(data):
+    raise SystemExit("ICNS container length does not match its header")
+
+position = 8
+sizes = set()
+while position < len(data):
+    if position + 8 > len(data):
+        raise SystemExit("truncated ICNS entry header")
+    entry_length = struct.unpack(">I", data[position + 4 : position + 8])[0]
+    if entry_length < 8 or position + entry_length > len(data):
+        raise SystemExit("invalid ICNS entry length")
+    payload = data[position + 8 : position + entry_length]
+    if len(payload) >= 24 and payload[:8] == b"\x89PNG\r\n\x1a\n":
+        width, height = struct.unpack(">II", payload[16:24])
+        if width == height and width > 0:
+            (icon_dir / f"{width}x{height}.png").write_bytes(payload)
+            sizes.add(width)
+    position += entry_length
+
+if not sizes:
+    raise SystemExit("ICNS container contains no square PNG icons")
 PY
 cp -f "${RESOURCES_DIR}/codex" "${APP_RESOURCES_DIR}/bin/codex"
 chmod +x "${APP_RESOURCES_DIR}/bin/codex"

@@ -51,7 +51,7 @@ This is a source-only repository. It does not publish prebuilt packages or track
 OpenAI's DMG, extracted application, proprietary binaries, or generated output.
 You download the official upstream DMG and build packages locally.
 
-Install a current `7zip`, `icnsutils`, Node.js/npm, Rust toolchain, and the
+Install a current `7zip`, Node.js/npm, Rust toolchain, and the
 official [Codex CLI](https://developers.openai.com/codex/cli/) first.
 
 ```bash

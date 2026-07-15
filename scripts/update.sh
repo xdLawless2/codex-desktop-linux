@@ -18,7 +18,7 @@ need_cmd() {
   fi
 }
 
-for command in codex curl node npm cargo 7z icns2png; do
+for command in codex curl node npm cargo 7z; do
   need_cmd "${command}"
 done
 

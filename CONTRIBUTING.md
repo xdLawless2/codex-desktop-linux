@@ -27,7 +27,7 @@ OpenAI Codex Desktop application for Linux.
 
 ## Development Workflow
 
-1. Install `7zip`, `icnsutils`, Node.js 24, npm, Rust, and the official Codex CLI.
+1. Install `7zip`, Node.js 24, npm, Rust, and the official Codex CLI.
 2. Download the official upstream DMG yourself (see `scripts/update.sh` for the URL).
 3. Run `npm ci` and `bash scripts/setup.sh ./Codex.dmg`.
 4. Make your changes to the packaging scripts, Linux UI patch, or native helper.
