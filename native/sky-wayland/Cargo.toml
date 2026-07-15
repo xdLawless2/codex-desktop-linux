@@ -1,0 +1,31 @@
+[package]
+name = "sky_wayland"
+version = "0.1.0"
+edition = "2021"
+description = "Wayland-native drop-in backend for the OpenAI Codex Linux Computer Use (@oai/sky) protocol"
+license = "MIT"
+repository = "https://github.com/xdLawless2/codex-desktop-linux"
+
+[[bin]]
+name = "sky_wayland"
+path = "src/main.rs"
+
+[[bin]]
+name = "sky_mcp"
+path = "src/bin/sky_mcp.rs"
+
+[profile.release]
+opt-level = 2
+strip = true
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libc = "0.2"
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "remote_desktop", "screencast"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util", "sync"] }
+atspi = { version = "0.30", default-features = false, features = ["connection", "proxies", "tokio", "zbus"] }
+base64 = "0.22"
+zbus = { version = "5.17.0", features = ["tokio"] }
+png = "0.18.1"

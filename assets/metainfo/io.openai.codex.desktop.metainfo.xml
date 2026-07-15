@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.openai.codex.desktop</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>LicenseRef-Proprietary</project_license>
+  <name>Codex Desktop</name>
+  <summary>Codex Desktop for Linux</summary>
+  <developer id="io.github.xdlawless2">
+    <name>Codex Linux Maintainers</name>
+  </developer>
+  <description>
+    <p>Unofficial Linux packaging of Codex Desktop, OpenAI's AI-powered coding assistant.</p>
+  </description>
+  <url type="homepage">https://github.com/xdLawless2/codex-desktop-linux</url>
+  <url type="bugtracker">https://github.com/xdLawless2/codex-desktop-linux/issues</url>
+  <launchable type="desktop-id">codex-desktop.desktop</launchable>
+  <provides>
+    <binary>codex-desktop</binary>
+  </provides>
+  <supports>
+    <id>org.freedesktop.Platform/x86_64</id>
+    <id>org.freedesktop.Platform/aarch64</id>
+  </supports>
+  <content_rating type="oars-1.1" intensity="mild" />
+  <releases>
+    <release version="26.707.72221" date="2026-07-15">
+      <description>
+        <p>Verified Linux package of the pinned upstream Codex Desktop release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

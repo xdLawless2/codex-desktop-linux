@@ -1,0 +1,39 @@
+{
+  "name": "codex-desktop-linux",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Unofficial Codex Desktop Linux packaging (DEB + AppImage)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xdLawless2/codex-desktop-linux.git"
+  },
+  "homepage": "https://github.com/xdLawless2/codex-desktop-linux",
+  "bugs": {
+    "url": "https://github.com/xdLawless2/codex-desktop-linux/issues"
+  },
+  "scripts": {
+    "update": "bash scripts/update.sh",
+    "create-app": "bash scripts/setup.sh",
+    "setup": "bash scripts/setup.sh",
+    "build:deb": "bash scripts/build-packages.sh deb",
+    "build:appimage": "bash scripts/build-packages.sh appimage",
+    "build:linux": "bash scripts/build-packages.sh all"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.2.0",
+    "better-sqlite3": "^12.11.1",
+    "electron": "^42.1.0",
+    "electron-builder": "^26.15.3",
+    "node": "^24.18.0"
+  },
+  "author": {
+    "name": "Codex Linux Maintainers",
+    "email": "codex-linux-maintainers@users.noreply.github.com"
+  },
+  "allowScripts": {
+    "electron@42.1.0": true,
+    "better-sqlite3": false,
+    "electron-winstaller": false
+  }
+}

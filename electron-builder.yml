@@ -1,0 +1,80 @@
+appId: com.openai.codex.desktop.linux
+productName: Codex
+directories:
+  app: app_asar
+  output: dist
+files:
+  - "**/*"
+extraResources:
+  - from: app_resources/bin/codex
+    to: codex
+    filter:
+      - "codex"
+  - from: app_resources/bin/codex-code-mode-host
+    to: codex-code-mode-host
+    filter:
+      - "codex-code-mode-host"
+  - from: app_resources/bin
+    to: bin
+    filter:
+      - "**/*"
+  - from: app_resources/plugins
+    to: plugins
+    filter:
+      - "**/*"
+  - from: app_resources/skills
+    to: skills
+    filter:
+      - "**/*"
+  - from: app_resources/codex-notification.wav
+    to: codex-notification.wav
+  - from: app_resources/THIRD_PARTY_NOTICES.txt
+    to: THIRD_PARTY_NOTICES.txt
+  - from: app_resources/computer-use
+    to: computer-use
+    filter:
+      - "**/*"
+  - from: assets/metainfo/io.openai.codex.desktop.metainfo.xml
+    to: metainfo/io.openai.codex.desktop.metainfo.xml
+asar: false
+npmRebuild: false
+afterPack: build/after-pack.js
+protocols:
+  - name: Codex
+    schemes:
+      - codex
+linux:
+  icon: assets/icons/linux
+  category: Development
+  synopsis: Unofficial Codex desktop packaging for Linux
+  description: Unofficial Linux package of the OpenAI Codex desktop application.
+  maintainer: Codex Linux Maintainers <codex-linux-maintainers@users.noreply.github.com>
+  executableName: codex-desktop
+  syncDesktopName: true
+  artifactName: codex-desktop-${version}-${arch}.${ext}
+appImage:
+  executableArgs: []
+deb:
+  afterInstall: scripts/debian/postinst
+  afterRemove: scripts/debian/postrm
+  depends:
+    - "libgtk-3-0"
+    - "libnotify4"
+    - "libnss3"
+    - "libxss1"
+    - "libsecret-1-0"
+    - "libxtst6"
+    - "xdg-desktop-portal"
+    - "gstreamer1.0-pipewire"
+    - "gstreamer1.0-plugins-good"
+    - "gstreamer1.0-plugins-base"
+    - "at-spi2-core"
+  recommends:
+    - "libappindicator3-1"
+  priority: optional
+  packageCategory: utils
+extraMetadata:
+  name: codex-desktop
+  productName: Codex
+  desktopName: codex-desktop
+  license: UNLICENSED

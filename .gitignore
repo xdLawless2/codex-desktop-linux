@@ -1,0 +1,22 @@
+# Generated / large artifacts
+Codex.dmg
+app_asar/
+app_resources/
+work_dmg/
+work_version_check/
+build_native/
+build_native_opt/
+node_modules/
+tools/
+dist/
+apt-public/
+assets/icons/
+native/sky-wayland/target/
+
+# npm
+npm-debug.log*
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/

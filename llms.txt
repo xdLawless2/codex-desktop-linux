@@ -1,0 +1,55 @@
+# Codex Desktop for Linux
+
+> Unofficial native Linux packaging for OpenAI Codex Desktop — DEB and AppImage builds with Wayland support.
+
+## Project
+
+- License: MIT
+- Status: Active, source verification in CI
+- Platforms: Ubuntu/Debian 22.04+ (amd64, arm64), any Linux distro via AppImage
+- Repository: https://github.com/xdLawless2/codex-desktop-linux
+
+## What It Does
+
+Patches the upstream macOS Codex Desktop build for Linux: rebuilds native
+modules, bundles the Linux Codex runtime, adds Wayland Computer Use, and
+packages as DEB and AppImage.
+
+## Installation
+
+This repository does not publish prebuilt packages. Install the required
+tooling and official Codex CLI, then download the official upstream DMG and
+build locally:
+
+```bash
+git clone https://github.com/xdLawless2/codex-desktop-linux.git
+cd codex-desktop-linux
+npm ci
+curl -fL "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+bash scripts/setup.sh ./Codex.dmg
+npm run build:linux
+```
+
+Generated `.deb` and `.AppImage` files are written to `dist/`. See README.md
+for installation and verification commands.
+
+## Key Features
+
+- Native .deb and AppImage packaging
+- Wayland support with auto-detection
+- Local DEB and AppImage builds from a user-supplied upstream DMG
+- Chromium sandbox handling that fails closed
+- Wayland Computer Use through xdg-desktop-portal
+- System integration (desktop entry, icons, AppStream metainfo)
+- Built-in `codex-desktop --doctor` diagnostics
+
+## Important
+
+This is an unofficial build, not affiliated with OpenAI. The repository does
+not track the upstream DMG, extracted application, proprietary binaries, or
+built packages in git, and it does not publish generated packages through
+GitHub Releases. No unsigned APT repository or remote root installer is
+published.
+
+Computer Use is scoped to KDE Plasma 6 Wayland and documented in
+docs/computer-use-linux.md.

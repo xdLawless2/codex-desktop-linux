@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+INSTALL_PREFIX="/opt/Codex"
+SANDBOX="$INSTALL_PREFIX/chrome-sandbox"
+LAUNCHER="$INSTALL_PREFIX/codex-desktop"
+METAINFO_SOURCE="$INSTALL_PREFIX/resources/metainfo/io.openai.codex.desktop.metainfo.xml"
+
+test -x "$LAUNCHER"
+test -f "$SANDBOX"
+test -f "$METAINFO_SOURCE"
+
+chown root:root "$SANDBOX"
+chmod 4755 "$SANDBOX"
+ln -sfn "$LAUNCHER" /usr/bin/codex-desktop
+install -Dm644 \
+    "$METAINFO_SOURCE" \
+    /usr/share/metainfo/io.openai.codex.desktop.metainfo.xml
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications
+fi
+gtk-update-icon-cache -f -t /usr/share/icons/hicolor

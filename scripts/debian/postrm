@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+
+rm -f /usr/bin/codex-desktop
+rm -f /usr/share/metainfo/io.openai.codex.desktop.metainfo.xml
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications
+fi
+gtk-update-icon-cache -f -t /usr/share/icons/hicolor

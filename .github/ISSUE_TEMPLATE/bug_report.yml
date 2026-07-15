@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a Linux packaging, runtime, or Computer Use defect
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is unofficial. Report OpenAI account, service, and Codex model issues to OpenAI.
+  - type: input
+    id: version
+    attributes:
+      label: Codex Desktop version
+      description: Run `codex-desktop --doctor` or use the package filename.
+      placeholder: "26.707.72221"
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Installation type
+      options:
+        - Debian package
+        - AppImage
+        - Local source build
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Linux system
+      description: Distribution, version, architecture, desktop, and display server.
+      placeholder: "Ubuntu 24.04, amd64, KDE Plasma 6, Wayland"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Launch...
+        2. Open...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Doctor output
+      description: Paste the complete output of `codex-desktop --doctor`. Remove sensitive paths or identifiers.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Include only logs needed to demonstrate the failure. Remove credentials and personal data.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I verified this is a Linux packaging or integration issue, not an OpenAI service issue.
+          required: true
+        - label: I searched existing issues for the same failure.
+          required: true
