@@ -33,6 +33,8 @@ rebuilt native modules, sandbox handling, and full desktop integration.
 | 🔧 | **Diagnostics** | Built-in `--doctor` command for troubleshooting |
 | 🔗 | **Deep-linking** | `x-scheme-handler/codex` protocol support |
 | 🖱️ | **Computer Use (KDE Wayland)** | App-scoped control through KWin UUIDs, AT-SPI semantics, exact-window screenshots, and portal input |
+| 🌍 | **Browser Use** | In-app agent browser with a floating picture-in-picture preview, ported from the macOS-only upstream feature |
+| 🧮 | **node_repl MCP server** | Linux reimplementation of the bundled `node_repl` agent runtime with the official upstream prompts |
 | 🎨 | **System integration** | Desktop entry, icon set, AppStream metainfo |
 | 🔐 | **Password storage** | Configurable Chromium backend; defaults to the documented `basic` store |
 | 🧹 | **Crash recovery** | Auto-cleans stale `SingletonLock` on startup |
@@ -108,6 +110,8 @@ the first thing to run when something misbehaves.
 | `CODEX_DISABLE_VULKAN` | `0` | Disable Vulkan (`1`) |
 | `CODEX_PASSWORD_STORE` | `basic` | Chromium password store backend |
 | `CODEX_CLI_PATH` | auto | Path to the Codex CLI binary |
+| `CODEX_LINUX_BROWSER_USE` | `1` | Disable the Linux Browser Use port (`0`) |
+| `CODEX_BROWSER_USE_DEFAULT_VIEWPORT_SIZE` | `1280x800` | In-app browser viewport size |
 
 By default the app inspects `WAYLAND_DISPLAY`: if set, it launches with native Wayland
 (including window decorations); otherwise it falls back to X11.
@@ -125,14 +129,17 @@ patch a few rough edges, and re-wrap it.
 **The packaging pipeline:**
 
 1. **Download** the upstream macOS `.dmg` from OpenAI's CDN
-2. **Extract** the `app.asar` and bundled resources (icons, CLI binary)
-3. **Rebuild** native modules (`better-sqlite3`, `node-pty`) for the target Electron version and architecture
-4. **Patch** the app for Linux:
+2. **Extract** the `app.asar` and bundled resources (icons, CLI binary, bundled plugins)
+3. **Assemble** the Linux agent runtime: a Linux Node.js binary plus this project's
+   `node_repl` MCP server, seeded with prompts extracted from the official macOS `node_repl`
+4. **Rebuild** native modules (`better-sqlite3`, `node-pty`) for the target Electron version and architecture, with ELF architecture verification
+5. **Patch** the app for Linux:
    - Hide the Electron menu bar
    - Suppress unsupported always-on-top companion overlays
    - Inject Linux renderer CSS for opaque window surfaces and sidebar rendering
-5. **Package** as `.deb` / `.AppImage` via `electron-builder`
-6. **Install** with proper sandbox permissions and desktop integration
+   - Enable Browser Use on Linux and route PiP frames to the Linux floating preview
+6. **Package** as `.deb` / `.AppImage` via `electron-builder`
+7. **Install** with proper sandbox permissions and desktop integration
 
 **Linux-specific workarounds applied during install:**
 
@@ -168,6 +175,27 @@ The implementation deliberately has one fail-fast path:
 
 Run `bash scripts/register-computer-use.sh <helper-dir>` to (re)register manually.
 
+## 🌍 Browser Use on Linux
+
+Upstream ships Browser Use only on macOS: the agent's `node_repl` runtime is a
+Mach-O binary and the floating Browser PiP is a native macOS overlay. This
+project ports both:
+
+- **`node_repl` MCP server** (`native/node-repl/server.mjs`) — a from-scratch
+  Linux reimplementation running on a bundled Linux Node.js runtime. During
+  extraction, the official tool prompts are pulled out of the upstream macOS
+  binary so the agent sees identical `js`, `js_reset`, and
+  `js_add_node_module_dir` tool descriptions. The sandbox is fail-fast:
+  untrusted imports are rejected, and `CODEX_HOME` config access is
+  path-checked with no direct write path.
+- **Browser PiP** (`build/linux-browser-pip.cjs`) — reimplements the floating
+  picture-in-picture browser preview with Electron windows, wired into the
+  app's PiP frame stream by `build/linux-ui-patch.js`.
+
+Browser Use is enabled by default and can be turned off with
+`CODEX_LINUX_BROWSER_USE=0`. CI exercises the `node_repl` MCP protocol
+end-to-end via `scripts/internal/test-node-repl.py`.
+
 ## Updating
 
 From the repository, one command updates the Linux Codex backend, downloads
@@ -197,8 +225,12 @@ bash scripts/smoke-verify.sh
 │   └── ci.yml                    # Source, Rust, workflow, and protocol checks
 ├── build/
 │   ├── after-pack.js             # Packaged launcher and MCP registration
+│   ├── linux-browser-pip.cjs     # Linux Browser Use runtime + floating PiP
+│   ├── linux-browser-pip-preload.cjs # PiP window preload
 │   └── linux-ui-patch.js         # Linux Electron UI behavior
-├── native/sky-wayland/           # Rust KWin, AT-SPI, and portal helpers
+├── native/
+│   ├── node-repl/                # Linux node_repl MCP server + prompt extraction
+│   └── sky-wayland/              # Rust KWin, AT-SPI, and portal helpers
 ├── scripts/
 │   ├── setup.sh                  # DMG extraction + native rebuild + local launcher
 │   ├── update.sh                 # Update CLI/DMG and rebuild everything
@@ -207,9 +239,10 @@ bash scripts/smoke-verify.sh
 │   ├── register-computer-use.sh  # Register the Linux MCP server
 │   ├── smoke-verify.sh           # Post-install smoke test
 │   ├── internal/
-│   │   ├── extract-dmg.sh        # DMG → app.asar extraction
+│   │   ├── extract-dmg.sh        # DMG → app.asar + agent runtime extraction
 │   │   ├── build-native.sh       # better-sqlite3 + node-pty rebuild
-│   │   └── build-computer-use.sh # Rust helper build
+│   │   ├── build-computer-use.sh # Rust helper build
+│   │   └── test-node-repl.py     # node_repl MCP protocol checks (CI)
 │   └── debian/
 │       ├── postinst              # DEB sandbox and desktop integration
 │       └── postrm                # DEB integration cleanup
