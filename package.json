@@ -22,17 +22,20 @@
   },
   "devDependencies": {
     "@electron/asar": "^4.2.0",
-    "better-sqlite3": "^12.11.1",
-    "electron": "^42.1.0",
+    "better-sqlite3": "12.11.1",
+    "electron": "42.3.0",
     "electron-builder": "^26.15.3",
-    "node": "^24.18.0"
+    "meriyah": "^7.1.2",
+    "node": "24.18.0",
+    "smol-toml": "^1.7.0"
   },
   "author": {
     "name": "Codex Linux Maintainers",
     "email": "codex-linux-maintainers@users.noreply.github.com"
   },
   "allowScripts": {
-    "electron@42.1.0": true,
+    "electron@42.3.0": true,
+    "node@24.18.0": true,
     "better-sqlite3": false,
     "electron-winstaller": false
   }

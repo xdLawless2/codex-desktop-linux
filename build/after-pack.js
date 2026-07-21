@@ -125,16 +125,26 @@ for arg in "$@"; do
 done
 
 CODEX_CLI_PATH="\${APP_DIR}/resources/codex"
-if [[ ! -x "\${CODEX_CLI_PATH}" ]]; then
-  echo "Missing bundled Linux Codex CLI: \${CODEX_CLI_PATH}" >&2
+CODEX_ELECTRON_RESOURCES_PATH="\${APP_DIR}/resources"
+CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH="\${CODEX_ELECTRON_RESOURCES_PATH}"
+CODEX_NODE_REPL_PATH="\${CODEX_ELECTRON_RESOURCES_PATH}/cua_node/bin/node_repl"
+CODEX_BROWSER_USE_NODE_PATH="\${APP_DIR}/resources/cua_node/bin/node"
+if [[ ! -x "\${CODEX_CLI_PATH}" || ! -f "\${CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH}/plugins/openai-bundled/.agents/plugins/marketplace.json" || ! -x "\${CODEX_NODE_REPL_PATH}" || ! -x "\${CODEX_BROWSER_USE_NODE_PATH}" ]]; then
+  echo "Missing bundled Linux Codex runtime." >&2
   exit 127
 fi
 
 export CODEX_CLI_PATH
+export CODEX_ELECTRON_RESOURCES_PATH
+export CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH
+export CODEX_NODE_REPL_PATH
+export CODEX_BROWSER_USE_NODE_PATH
+export CODEX_BROWSER_USE_DEFAULT_VIEWPORT_SIZE="\${CODEX_BROWSER_USE_DEFAULT_VIEWPORT_SIZE:-1280x800}"
 export NODE_ENV="\${NODE_ENV:-production}"
 export ELECTRON_FORCE_IS_PACKAGED="\${ELECTRON_FORCE_IS_PACKAGED:-1}"
+unset ELECTRON_RUN_AS_NODE
 
-extra_args=()
+extra_args=(--class=codex-desktop)
 
 for arg in "$@"; do
   if [[ "\${arg}" == "--no-sandbox" || "\${arg}" == "--disable-gpu-sandbox" ]]; then

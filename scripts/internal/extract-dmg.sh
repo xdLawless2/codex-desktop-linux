@@ -7,6 +7,12 @@ APP_ASAR_DIR="${ROOT_DIR}/app_asar"
 APP_RESOURCES_DIR="${ROOT_DIR}/app_resources"
 ICON_DIR="${ROOT_DIR}/assets/icons/linux"
 DMG_PATH="${1:-${ROOT_DIR}/Codex.dmg}"
+NODE_RUNTIME_SOURCE="${ROOT_DIR}/node_modules/node/bin/node"
+NODE_REPL_SOURCE="${ROOT_DIR}/native/node-repl/server.mjs"
+NODE_REPL_PROMPT_EXTRACTOR="${ROOT_DIR}/native/node-repl/extract-prompts.py"
+NODE_REPL_BROWSER_DOC_PATCHER="${ROOT_DIR}/native/node-repl/patch-browser-docs.py"
+MERIYAH_SOURCE="${ROOT_DIR}/node_modules/meriyah"
+SMOL_TOML_SOURCE="${ROOT_DIR}/node_modules/smol-toml"
 CODEX_CLI_SOURCE_PATH="${CODEX_CLI_SOURCE_PATH:-}"
 CODEX_CODE_MODE_HOST_SOURCE_PATH="${CODEX_CODE_MODE_HOST_SOURCE_PATH:-}"
 
@@ -31,10 +37,19 @@ if ! command -v 7z >/dev/null 2>&1; then
   echo "Missing required command: 7z (install the current 7zip package)." >&2
   exit 1
 fi
+if ! command -v file >/dev/null 2>&1; then
+  echo "Missing required command: file" >&2
+  exit 1
+fi
 SEVEN_Z_BIN="$(command -v 7z)"
 
 rm -rf "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}" "${ICON_DIR}"
-mkdir -p "${WORK_DIR}" "${APP_ASAR_DIR}" "${APP_RESOURCES_DIR}/bin" "${ICON_DIR}"
+mkdir -p \
+  "${WORK_DIR}" \
+  "${APP_ASAR_DIR}" \
+  "${APP_RESOURCES_DIR}/bin" \
+  "${APP_RESOURCES_DIR}/plugins" \
+  "${ICON_DIR}"
 
 echo "[1/3] Extracting DMG..."
 EXTRACT_LOG="${WORK_DIR}/7z-extract.log"
@@ -129,15 +144,99 @@ PY
 cp -f "${RESOURCES_DIR}/codex" "${APP_RESOURCES_DIR}/bin/codex"
 chmod +x "${APP_RESOURCES_DIR}/bin/codex"
 
-mkdir -p "${APP_RESOURCES_DIR}/plugins/openai-bundled/plugins"
-for plugin in browser chrome deep-research sites visualize; do
-  cp -a \
-    "${RESOURCES_DIR}/plugins/openai-bundled/plugins/${plugin}" \
-    "${APP_RESOURCES_DIR}/plugins/openai-bundled/plugins/${plugin}"
-done
+cp -a \
+  "${RESOURCES_DIR}/plugins/openai-bundled" \
+  "${APP_RESOURCES_DIR}/plugins/openai-bundled"
+if [[ ! -f "${NODE_REPL_BROWSER_DOC_PATCHER}" ]]; then
+  echo "Browser documentation patcher does not exist: ${NODE_REPL_BROWSER_DOC_PATCHER}" >&2
+  exit 1
+fi
+python3 \
+  "${NODE_REPL_BROWSER_DOC_PATCHER}" \
+  "${APP_RESOURCES_DIR}/plugins/openai-bundled"
 cp -a "${RESOURCES_DIR}/skills" "${APP_RESOURCES_DIR}/skills"
 cp -f "${RESOURCES_DIR}/codex-notification.wav" "${APP_RESOURCES_DIR}/codex-notification.wav"
 cp -f "${RESOURCES_DIR}/THIRD_PARTY_NOTICES.txt" "${APP_RESOURCES_DIR}/THIRD_PARTY_NOTICES.txt"
+
+if [[ ! -x "${NODE_RUNTIME_SOURCE}" ]]; then
+  echo "Linux Node runtime does not exist: ${NODE_RUNTIME_SOURCE}" >&2
+  exit 1
+fi
+if [[ ! -f "${NODE_REPL_SOURCE}" ]]; then
+  echo "Linux node_repl server does not exist: ${NODE_REPL_SOURCE}" >&2
+  exit 1
+fi
+if [[ ! -f "${NODE_REPL_PROMPT_EXTRACTOR}" ]]; then
+  echo "node_repl prompt extractor does not exist: ${NODE_REPL_PROMPT_EXTRACTOR}" >&2
+  exit 1
+fi
+if [[ ! -d "${MERIYAH_SOURCE}" ]]; then
+  echo "node_repl JavaScript parser does not exist: ${MERIYAH_SOURCE}" >&2
+  exit 1
+fi
+if [[ ! -d "${SMOL_TOML_SOURCE}" ]]; then
+  echo "node_repl TOML parser does not exist: ${SMOL_TOML_SOURCE}" >&2
+  exit 1
+fi
+OFFICIAL_NODE_REPL_SOURCE="${RESOURCES_DIR}/cua_node/bin/node_repl"
+if [[ ! -f "${OFFICIAL_NODE_REPL_SOURCE}" ]]; then
+  echo "Official node_repl prompt source does not exist: ${OFFICIAL_NODE_REPL_SOURCE}" >&2
+  exit 1
+fi
+SKY_SOURCE="${RESOURCES_DIR}/cua_node/lib/node_modules/@oai/sky"
+if [[ ! -d "${SKY_SOURCE}" ]]; then
+  echo "Upstream @oai/sky runtime does not exist: ${SKY_SOURCE}" >&2
+  exit 1
+fi
+
+NODE_RUNTIME_FILE="$(file -b "${NODE_RUNTIME_SOURCE}")"
+case "${NODE_RUNTIME_FILE}" in
+  *x86-64*) NODE_RUNTIME_ARCH="x64" ;;
+  *aarch64*|*ARM64*) NODE_RUNTIME_ARCH="arm64" ;;
+  *)
+    echo "Unsupported Linux Node runtime architecture: ${NODE_RUNTIME_FILE}" >&2
+    exit 1
+    ;;
+esac
+NODE_RUNTIME_VERSION="$("${NODE_RUNTIME_SOURCE}" --version)"
+NODE_RUNTIME_VERSION="${NODE_RUNTIME_VERSION#v}"
+
+mkdir -p \
+  "${APP_RESOURCES_DIR}/cua_node/bin" \
+  "${APP_RESOURCES_DIR}/cua_node/lib/node_modules/@oai" \
+  "${APP_RESOURCES_DIR}/cua_node/lib/node_repl"
+cp -f "${NODE_RUNTIME_SOURCE}" "${APP_RESOURCES_DIR}/cua_node/bin/node"
+cp -f "${NODE_REPL_SOURCE}" "${APP_RESOURCES_DIR}/cua_node/lib/node_repl/server.mjs"
+python3 \
+  "${NODE_REPL_PROMPT_EXTRACTOR}" \
+  "${OFFICIAL_NODE_REPL_SOURCE}" \
+  "${APP_RESOURCES_DIR}/cua_node/lib/node_repl/official-prompts.json"
+cp -a "${SKY_SOURCE}" "${APP_RESOURCES_DIR}/cua_node/lib/node_modules/@oai/sky"
+cp -a "${MERIYAH_SOURCE}" "${APP_RESOURCES_DIR}/cua_node/lib/node_modules/meriyah"
+cp -a "${SMOL_TOML_SOURCE}" "${APP_RESOURCES_DIR}/cua_node/lib/node_modules/smol-toml"
+cat > "${APP_RESOURCES_DIR}/cua_node/bin/node_repl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+RUNTIME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "${RUNTIME_DIR}/bin/node" \
+  --experimental-vm-modules \
+  "${RUNTIME_DIR}/lib/node_repl/server.mjs" \
+  "$@"
+EOF
+chmod +x \
+  "${APP_RESOURCES_DIR}/cua_node/bin/node" \
+  "${APP_RESOURCES_DIR}/cua_node/bin/node_repl"
+cat > "${APP_RESOURCES_DIR}/cua_node/manifest.json" <<EOF
+{
+  "platform": "linux",
+  "arch": "${NODE_RUNTIME_ARCH}",
+  "target": "linux-${NODE_RUNTIME_ARCH}",
+  "node_version": "${NODE_RUNTIME_VERSION}",
+  "node_path": "bin/node",
+  "node_modules": "lib/node_modules",
+  "node_repl_path": "bin/node_repl"
+}
+EOF
 
 echo "[3/3] Extracting app.asar -> ${APP_ASAR_DIR}"
 npx --no-install asar extract "${ASAR_PATH}" "${APP_ASAR_DIR}"
@@ -166,6 +265,39 @@ if [[ -n "${CODEX_CODE_MODE_HOST_SOURCE_PATH}" ]]; then
     "${CODEX_CODE_MODE_HOST_SOURCE_PATH}" \
     "${APP_RESOURCES_DIR}/bin/codex-code-mode-host"
   chmod +x "${APP_RESOURCES_DIR}/bin/codex-code-mode-host"
+fi
+
+assert_linux_arch() {
+  local binary_path="$1"
+  local label="$2"
+  local description
+  local binary_arch
+
+  description="$(file -b "${binary_path}")"
+  if [[ "${description}" != *ELF* ]]; then
+    echo "${label} is not a Linux ELF binary: ${description}" >&2
+    exit 1
+  fi
+  case "${description}" in
+    *x86-64*) binary_arch="x64" ;;
+    *aarch64*|*ARM64*) binary_arch="arm64" ;;
+    *)
+      echo "Unsupported ${label} architecture: ${description}" >&2
+      exit 1
+      ;;
+  esac
+  if [[ "${binary_arch}" != "${NODE_RUNTIME_ARCH}" ]]; then
+    echo "Architecture mismatch: ${label} is ${binary_arch}, Node runtime is ${NODE_RUNTIME_ARCH}" >&2
+    exit 1
+  fi
+}
+
+assert_linux_arch "${APP_RESOURCES_DIR}/cua_node/bin/node" "Browser Use Node runtime"
+if [[ -n "${CODEX_CLI_SOURCE_PATH}" ]]; then
+  assert_linux_arch "${APP_RESOURCES_DIR}/bin/codex" "Codex CLI"
+fi
+if [[ -n "${CODEX_CODE_MODE_HOST_SOURCE_PATH}" ]]; then
+  assert_linux_arch "${APP_RESOURCES_DIR}/bin/codex-code-mode-host" "Codex code-mode host"
 fi
 
 echo "Done."

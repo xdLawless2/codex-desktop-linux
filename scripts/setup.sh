@@ -105,8 +105,22 @@ if [[ ! -x "\${ELECTRON_BIN}" ]]; then
 fi
 export ELECTRON_FORCE_IS_PACKAGED=1
 export NODE_ENV=production
+unset ELECTRON_RUN_AS_NODE
 export CODEX_CLI_PATH
-EXTRA_ELECTRON_ARGS=()
+CODEX_ELECTRON_RESOURCES_PATH="\${ROOT_DIR}/app_resources"
+CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH="\${CODEX_ELECTRON_RESOURCES_PATH}"
+CODEX_NODE_REPL_PATH="\${CODEX_ELECTRON_RESOURCES_PATH}/cua_node/bin/node_repl"
+CODEX_BROWSER_USE_NODE_PATH="\${ROOT_DIR}/app_resources/cua_node/bin/node"
+if [[ ! -f "\${CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH}/plugins/openai-bundled/.agents/plugins/marketplace.json" || ! -x "\${CODEX_NODE_REPL_PATH}" || ! -x "\${CODEX_BROWSER_USE_NODE_PATH}" ]]; then
+  echo "Missing Linux Browser Use runtime. Re-run setup." >&2
+  exit 1
+fi
+export CODEX_ELECTRON_RESOURCES_PATH
+export CODEX_ELECTRON_BUNDLED_PLUGINS_RESOURCES_PATH
+export CODEX_NODE_REPL_PATH
+export CODEX_BROWSER_USE_NODE_PATH
+export CODEX_BROWSER_USE_DEFAULT_VIEWPORT_SIZE="\${CODEX_BROWSER_USE_DEFAULT_VIEWPORT_SIZE:-1280x800}"
+EXTRA_ELECTRON_ARGS=(--class=codex-desktop)
 for arg in "\$@"; do
   if [[ "\${arg}" == "--no-sandbox" || "\${arg}" == "--disable-gpu-sandbox" ]]; then
     echo "Refusing to launch Codex Desktop without Chromium sandboxing." >&2
@@ -194,7 +208,8 @@ EOF
 
   echo "[6/6] Installing Linux desktop application..."
   mkdir -p "${HOME}/.local/share/applications"
-  cat > "${HOME}/.local/share/applications/codex.desktop" <<EOF
+  rm -f "${HOME}/.local/share/applications/codex.desktop"
+  cat > "${HOME}/.local/share/applications/codex-desktop.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Codex
@@ -204,8 +219,9 @@ Terminal=false
 Icon=codex
 Categories=Development;
 StartupNotify=true
-StartupWMClass=Codex
+StartupWMClass=codex-desktop
 MimeType=x-scheme-handler/codex;
+X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
 EOF
 
   for icon_path in "${ROOT_DIR}"/assets/icons/linux/*x*.png; do

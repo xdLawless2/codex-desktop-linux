@@ -20,7 +20,7 @@ fi
 echo "Building Wayland Computer Use helpers..."
 (
   cd "${CRATE_DIR}"
-  cargo build --release
+  cargo build --release --locked
 )
 
 mkdir -p "${DEST_DIR}"

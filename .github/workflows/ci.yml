@@ -33,13 +33,23 @@ jobs:
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
 
-      - name: Validate shell and Node scripts
+      - name: Validate shell, Node, and Python scripts
         run: |
           bash -n scripts/*.sh scripts/internal/*.sh scripts/debian/postinst scripts/debian/postrm
           shellcheck scripts/*.sh scripts/internal/*.sh scripts/debian/postinst scripts/debian/postrm
           node --check build/after-pack.js
           node --check build/linux-ui-patch.js
+          node --check build/linux-browser-pip.cjs
+          node --check build/linux-browser-pip-preload.cjs
+          node --check native/node-repl/server.mjs
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/pycache" python3 -m py_compile \
+            native/node-repl/extract-prompts.py \
+            native/node-repl/patch-browser-docs.py \
+            scripts/internal/test-node-repl.py
           appstreamcli validate --no-net assets/metainfo/io.openai.codex.desktop.metainfo.xml
+
+      - name: Verify Node REPL MCP protocol
+        run: python3 scripts/internal/test-node-repl.py
 
       - name: Validate GitHub Actions workflows
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12

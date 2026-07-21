@@ -34,6 +34,10 @@ extraResources:
     to: computer-use
     filter:
       - "**/*"
+  - from: app_resources/cua_node
+    to: cua_node
+    filter:
+      - "**/*"
   - from: assets/metainfo/io.openai.codex.desktop.metainfo.xml
     to: metainfo/io.openai.codex.desktop.metainfo.xml
 asar: false
