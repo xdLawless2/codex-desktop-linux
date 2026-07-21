@@ -13,6 +13,9 @@ apt-public/
 assets/icons/
 native/sky-wayland/target/
 
+# python
+__pycache__/
+
 # npm
 npm-debug.log*
 
