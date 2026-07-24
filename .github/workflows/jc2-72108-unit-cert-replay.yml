@@ -1,0 +1,57 @@
+name: JC2 72-108 unit certificate replay
+
+on:
+  push:
+    branches: [jc2-72108-unit-cert-replay]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04]
+        branch: [1_3, 2_5, 3_7]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch, restore, and verify the pinned certificate bundle
+        run: |
+          set -euo pipefail
+          mkdir -p jc2-certs/chunks
+          base='https://raw.githubusercontent.com/xdLawless2/horseflow/2fcf24f55548452ffbbb806528e4c8e2b4caa98a/jc2-72108-ci'
+          for i in 00 01 02 03; do
+            curl --fail --location --retry 5 "$base/certs.b64.$i" -o "jc2-certs/chunks/certs.b64.$i"
+          done
+          cat jc2-certs/chunks/certs.b64.* | base64 -d > jc2-certs/certs.tar.xz
+          echo '17a6e1522930a1ea4da025ec48299fd00bb5ca9a1150514213971a75f6b77e54  jc2-certs/certs.tar.xz' | sha256sum -c -
+          mkdir jc2-certs/scripts
+          tar -xJf jc2-certs/certs.tar.xz -C jc2-certs/scripts
+          echo 'ad032eb334b677ec9ead615f17e23194ea675fd42db8d806bee568217c9bd301  jc2-certs/scripts/certificate_1_3.sing' | sha256sum -c -
+          echo '6c6daa815089e3465f683cdb3979284c2f0fcd1bb1c44bec341fe56485ecb5ab  jc2-certs/scripts/certificate_2_5.sing' | sha256sum -c -
+          echo 'b939e475a03e7b22fbfe6efb07cdf90738ea0f25490138c112342d8692bfd50f  jc2-certs/scripts/certificate_3_7.sing' | sha256sum -c -
+      - name: Install Singular
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y singular
+          Singular --version | tee singular-version.log
+      - name: Replay exact unit certificate
+        run: |
+          set -euo pipefail
+          Singular -q jc2-certs/scripts/certificate_${{ matrix.branch }}.sing | tee replay-${{ matrix.branch }}.log
+          grep -q "BRANCH ${{ matrix.branch }}: UNIT_CERTIFICATE_VERIFIED" replay-${{ matrix.branch }}.log
+          ! grep -q 'FAILURE' replay-${{ matrix.branch }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jc2-replay-${{ matrix.os }}-${{ matrix.branch }}
+          path: |
+            replay-${{ matrix.branch }}.log
+            singular-version.log
